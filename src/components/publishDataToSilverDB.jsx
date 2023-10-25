@@ -14,7 +14,7 @@ import {
     Slider
 } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
-import axios from 'axios';
+import { filterValue, getCompanies } from '../services/companyService';
 
 const {RangePicker} = DatePicker;
 const { Title } = Typography;
@@ -88,30 +88,29 @@ const PublishDataToSilverDB = (props) => {
                 "max_value": mortgage_transactions[1]
             }
         }
-
-        const params = new URLSearchParams(data);
-        
-        console.log(data);
         
         try{
             setLoading(true);
-            const response = await axios.get('/company/read',{
-                params: data,
-                headers: {
-                    "Authorization": 'Basic ' + btoa(username + ':' + password)
-                }
-            })
+            
+            // const response = await fetch('/company/filter', {
+            //     method: 'POST',
+            //     headers: {
+            //         "Content-Type": "application/json",
+            //         "Authorization": 'Basic ' + btoa(username + ':' + password)
+            //     },
+            //     body: JSON.stringify(data)
+            // })
 
-            if (response.status == 200) {
-                const {data} = response;
-                console.log(data);
-            }else{
-
-            }
+            // if (!response.ok) {
+            //     throw new Error(response.statusText);
+            // }
 
             // const result = await response.json();
-            // console.log(result);
-            // setCompanies(result.data);
+
+            const result = await getCompanies(data);
+            console.log(result);
+            
+            setCompanies(result.data.data);
             setLoading(false);
         }catch(error){
             setLoading(false);
@@ -122,23 +121,17 @@ const PublishDataToSilverDB = (props) => {
     const fetchFiltersValue = async () => {
         try{
             setLoading(true);
-            const response = await axios('/company/value', {
-                headers: {
-                    "Authorization": 'Basic ' + btoa(username + ':' + password)
-                }
-            })
-
-            if (!response.ok) {
-                throw new Error(response.statusText);
-            }
-
-            const {data} = await response.json();
+            const response = await filterValue();
+            const {data} = response.data;
             const {min_mortgage, max_mortgage, min_avg_mortgage_amount, max_avg_mortgage_amount} = data;
             setFilters({
                 ...filters,
-                mortgage_transactions: [min_mortgage, max_mortgage],
-                average_mortgage_amount: [min_avg_mortgage_amount, max_avg_mortgage_amount]
+                mortgage_transactions: [min_mortgage, max_mortgage/2],
+                average_mortgage_amount: [min_avg_mortgage_amount, max_avg_mortgage_amount/2]
             });
+
+            form.setFieldValue('mortgage_transactions', [min_mortgage, max_mortgage/2]);
+            form.setFieldValue('average_mortgage_amount', [min_avg_mortgage_amount, max_avg_mortgage_amount/2])
         
             setFormRanges(data);
             setLoading(false);
@@ -252,11 +245,11 @@ const PublishDataToSilverDB = (props) => {
                             </Col>
                             <Col span={5}>
                                 <Form.Item style={{ marginRight: '10px' }} label={<label style={{ fontStyle: "bold" }}>Average Mortgage Amount</label>} name="average_mortgage_amount">
-                                    <Slider range min={0} max={formRanges.max_avg_mortgage_amount} />
+                                    <Slider tooltip={{open: true, placement: 'bottom'}} range min={0} max={formRanges.max_avg_mortgage_amount} />
                                 </Form.Item>
                             </Col>
                             <Col span={5}>
-                                <Form.Item label={<label style={{ fontStyle: "bold" }}>Mortgage Transactions</label>} name="mortgage_transactions">
+                                <Form.Item label={<label style={{ fontStyle: "bold" }}>Mortgage Transactions </label>} name="mortgage_transactions">
                                     <Slider min={0} max={formRanges.max_mortgage} range />
                                 </Form.Item>
                             </Col>
@@ -280,13 +273,10 @@ const PublishDataToSilverDB = (props) => {
                     </Form>
 
                     <Table 
-                        // rowSelection={rowSelection}
-                        // pagination={tableParams.pagination}
                         rowKey={(company) => company.company_id} 
                         columns={columns} 
                         loading={loading}
                         dataSource={companies}
-                        // onChange={handleTableChange}
                     />
                 </Content>
             </Layout>

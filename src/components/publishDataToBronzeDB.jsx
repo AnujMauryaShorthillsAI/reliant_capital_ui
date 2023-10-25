@@ -5,7 +5,7 @@
     Date: 18-10-2023
     Azure Ticket Link : https://dev.azure.com/Generative-AI-Training/GenerativeAI/_workitems/edit/115/
 **/
-import React, {useState, useEffect, useMemo} from 'react';
+import React, {useState, useEffect} from 'react';
 import { 
     Typography, 
     Table, 
@@ -23,6 +23,8 @@ import {
     notification
 } from 'antd';
 import { SearchOutlined } from '@ant-design/icons';
+import { getStates, getCompanies} from '../services/forecasaService';
+import { saveCompanies } from '../services/companyService';
 
 const { Title } = Typography;
 const { Header, Content } = Layout;
@@ -94,18 +96,13 @@ const PublishDataToBronzeDB = (props) => {
     // });
 
     const fetchStates = async() => {
-        const params = new URLSearchParams({
-            // api_key: forecasa_api_key
-        });
+        // const params = new URLSearchParams({
+        //     // api_key: forecasa_api_key
+        // });
 
         try{
-            const response = await fetch(`/api/v1/geo/counties_by_states?`+params);
-            
-            if (!response.ok) {
-                throw new Error(response.statusText);
-            }
-            
-            const {states} = await response.json();
+            const response = await getStates();
+            const {states} = response;
             setStates(states);
         }catch(error){
             console.error(error);
@@ -113,7 +110,7 @@ const PublishDataToBronzeDB = (props) => {
     }
 
     const fetchCompanyData = async () => {
-        const {child_sponsor, company_tags, counties} = filters
+        const {child_sponsor, company_tags, counties} = filters;
   
         // console.log(tableParams.pagination);
         // const params = new URLSearchParams({
@@ -122,38 +119,36 @@ const PublishDataToBronzeDB = (props) => {
         //   api_key: forecasa_api_key
         // });
 
-        const params = new URLSearchParams({
-            page: 1, 
-            page_size: 200, 
-            // api_key: forecasa_api_key
-        });
+        // const params = new URLSearchParams({
+        //     page: 1, 
+        //     page_size: 200, 
+        //     // api_key: forecasa_api_key
+        // });
   
-        if(company_tags){
-          console.log("Adding company tags filter....")
-          company_tags.forEach((tag) => {
-            params.append('q[tags_name_in][]',tag);
-          })
-        }
+        // if(company_tags){
+        //   console.log("Adding company tags filter....")
+        //   company_tags.forEach((tag) => {
+        //     params.append('q[tags_name_in][]',tag);
+        //   })
+        // }
   
-        if(child_sponsor){
-            console.log("Adding company name filter...")
-            params.append('q[name_cont]', child_sponsor)
-        }
+        // if(child_sponsor){
+        //     console.log("Adding company name filter...")
+        //     params.append('q[name_cont]', child_sponsor)
+        // }
   
-        if(counties){
-          counties.forEach((county) => {
-            params.append('[transactions][q][county_in][]', county);
-          })
-        }
+        // if(counties){
+        //   counties.forEach((county) => {
+        //     params.append('[transactions][q][county_in][]', county);
+        //   })
+        // }
 
+        const payload = {...filters, page: 1, pageSize: 1};
         try{
             setLoadingCompanies(true);
 
-            const response = await fetch(`/api/v1/companies?` + params, { headers: { "Content-Type": "application/json"}});
-            if (!response.ok) {
-                throw new Error(response.statusText);
-            }
-            const {companies, companies_total_count} = await response.json();
+            const response = await getCompanies(payload);
+            const {companies, companies_total_count} = response;
             setCompanies(companies);
 
             setLoadingCompanies(false);
@@ -294,21 +289,11 @@ const PublishDataToBronzeDB = (props) => {
     const handlePublish = async () => {
         try{
             setPublishingData(true);
-            const response = await fetch('/company/add', {
-                method: 'POST',
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": 'Basic ' + btoa(username + ':' + password)
-                },
-                body: JSON.stringify({companies})
-            })
+            const response = await saveCompanies({companies});
 
-            if (!response.ok) {
-                throw new Error(response.statusText);
-            }
-  
-            const result = await response.json();
-            console.log("Success:", result);
+            console.log("Response got while saving data.");
+            console.log(response.message);
+
             setPublishingData(false);
             openNotification('topRight', 'Data Ingestion Successful!')
         }catch(error){
@@ -378,7 +363,7 @@ const PublishDataToBronzeDB = (props) => {
                                                         // console.log(state['children']);
                                                         state['children'].map((county) => {
                                                             return <Option key={county['value']} value={county['value']}>
-                                                                {county['label']}
+                                                                {county['label'] + ` (${state['label']})`}
                                                             </Option>
                                                         })
                                                     ))
@@ -396,7 +381,7 @@ const PublishDataToBronzeDB = (props) => {
                                     <Col align="middle" span={2}>
                                         <Form.Item>
                                         <Tooltip title="Publish Data">
-                                            <Button disabled={loadingCompanies || publishingData || companies.length == 0} onClick={handlePublish} size='large' type="primary">
+                                            <Button  onClick={handlePublish} size='large' type="primary">
                                                 Publish
                                             </Button>
                                         </Tooltip>

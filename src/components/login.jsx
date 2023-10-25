@@ -1,7 +1,7 @@
 import React from 'react';
 import {Form, Input, Button, Row, Col, Layout, Space, Typography} from 'antd';
 import { useNavigate } from 'react-router-dom';
-import Cookies from 'js-cookie';
+import { login } from '../services/authService'
 
 const {Header, Content} = Layout
 const { Title } = Typography
@@ -12,17 +12,14 @@ const labelStyling = {
 };
 const forecasa_api_key = process.env.REACT_APP_FORECASA_API_KEY;
 
-const Login = ({setLoggedIn}) => {
-    const USERNAME = 'admin'
-    const PASSWORD = 'password123'
-
+const Login = () => {
     const [form] = Form.useForm();
     const navigate = useNavigate()
 
     const onFinish = async (values) => {
-        if(values['username'] == USERNAME && values['password'] == PASSWORD){
-            console.log("Logged In successfully");
-            setLoggedIn(true);
+        const loggedIn = login(values['username'], values['password']);
+        if(loggedIn){
+            // Work Around
             await fetchStates();
             navigate('/publish');
         }else{

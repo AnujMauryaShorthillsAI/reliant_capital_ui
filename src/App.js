@@ -10,19 +10,16 @@ import {Route, Routes, Navigate} from 'react-router-dom';
 import PublishDataToSilverDB from './components/publishDataToSilverDB';
 
 function App() {
-  const [loggedIn, setLoggedIn] = useState(false);
-
+ 
   return (
     <div className="App">
       <div className='container'>
-        {/* <Header value={loggedIn? "Manual Override Table" : "Login Form"}/> */}
         <Routes>
           <Route path='/' element={<Navigate replace to="/login" />}/>
-          <Route path="/login" element={<Login setLoggedIn={setLoggedIn}/>}/>
+          <Route path="/login" element={<Login />}/>
           <Route path="/publish" element={<PublishDataToBronzeDB />}/>
           <Route path="/bronze" element={<PublishDataToSilverDB />}/>
         </Routes>
-        {/* {loggedIn? <> <Header/> <CompanyTable/> </> : <Login setLoggedIn={setLoggedIn}/>}     */}
       </div>
     </div>
   );
